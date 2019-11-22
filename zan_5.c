@@ -19,7 +19,7 @@
 
 
 
-#define L
+//#define L
 //#define l
 //#define N
 //#define n
@@ -43,7 +43,7 @@ char * settime(struct tm *u)
   char s[40];
   char *tmp;
   for (int i = 0; i<40; i++) s[i] = 0;
-  int length = strftime(s, 40, "%d.%m.%Y %H:%M:%S, %A", u);
+  int length = strftime(s, 40, "%d.%m.%Y %H:%M:%S, %A", u);   //функция для перевода дохуища секунд в адекватный формат времени
   tmp = (char*)malloc(sizeof(s));
   strcpy(tmp, s);
   return(tmp);
@@ -52,11 +52,11 @@ char * settime(struct tm *u)
 
 int main(int argc, char *argv[])
 {
-	struct passwd *pwd_1, *pwd_2;
+	struct passwd *pwd_1, *pwd_2; //для определения имени пользователя и группы (без них выводит как с функцией -n)
 	bool found_a = false;
-	char *root_name = (char *) malloc(10*sizeof(char));
-	int size_name;
-	struct tm *u;
+	char *root_name = (char *) malloc(10*sizeof(char)); //переводит числовое значчение рут дотсупа в строчное (см далее)
+	int size_name; //длина имени выводимого файла (не нужно)
+	struct tm *u; //для времени
 	char *f;
 	time_t timer;
 	int i;
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 			case 'l':
 				//#define L 
 				//#define l %s
-				break;
+				break;					//ТУТ ПОКА ЧТО ВСЁ МЕРТВО
 			case 'i':
 				break;
 			case 'd':
@@ -128,19 +128,20 @@ int main(int argc, char *argv[])
 							root_name = "-rw-rw-r--";
 							break;
 						case 16893:
-							root_name = "drwxrwxr-x";
+							root_name = "drwxrwxr-x"; //ЗДЕСЬ ЕЩЕ НЕ ВСЁ
 							break;
 						default :
 							;
-					}
-					printf("%10ld %s %s %s %ld %30s %.*s\n", s.st_ino, root_name, pwd_1->pw_name, pwd_2->pw_name, s.st_size, f, size_name, dirent_dir->d_name);
+					}//самое сложное - понять что в принтфе....
+					printf("%10ld %s %s %s %ld %30s %.*s\n", s.st_ino, root_name, pwd_1->pw_name, pwd_2->pw_name, s.st_size, f, size_name, dirent_dir->d_name); //ПРимерный вывод с опцией -l
 				}
 				dirent_dir = readdir(directory_name);
+
 				if (stat(dirent_dir->d_name, &s) == -1)
 				{
-					printf("/%s/ SUKA SHVAL\n",dirent_dir->d_name);
-					perror("SUKA BYAD\n");
-				}
+					printf("/%s/ SUKA SHVAL\n",dirent_dir->d_name); //ОТРЫКРЫТИЕ В ЧАС НОЧИ - СТАТ ОТКРЫВАЕТ ФАЙЛЫ ТОЛЬКО В ДИРЕКТОРИИ, В КОТОРОЙ НАХОДИТСЯ ПРОГРАММА!!!()
+					perror("SUKA BYAD\n");							//(откуда она запускается) НУЖНО КАЖДЫЙ РАЗ ПЕРЕХОДИТЬ В ДИРЕКТОРИИ КОТОРЫЙ ПИШЕТ ПОЛЬЗОВАТЕЛЬ И ОТТУДА
+				}													//УЖЕ ВЫВОДИТЬ ИНФУ о ФАЙЛЕ (наверно такое решение)
 
 				timer = s.st_atime;
 				u = localtime(&timer);
