@@ -17,20 +17,6 @@
 #include <stdbool.h>
 #include <pwd.h>
 
-
-
-//#define L
-//#define l
-//#define N
-//#define n
-//#define I 
-//#define i
-
-//#define PRINT_LS(L,l,A,a,N,n,I,i)\
-	printf("(l)   (n)   (i)  %s\n",(L) (N) (i) dirent_dir->d_name); \
-
-//-l -a -n -i -d -R
-//struct DIR;
 int stat(const char *file_name, struct stat *buf);
 int fstat(int filedes, struct stat *buf);
 int lstat(const char *file_name, struct stat *buf);
@@ -38,33 +24,111 @@ DIR *opendir(const char *name);
 struct dirent *readdir(DIR *dir);
 
 
-char * settime(struct tm *u)
+void do_ls(char *str, char *file_name) //добавить кол - во жестких ссылок
+										//str - argv[i], 
 {
-  char s[40];
-  char *tmp;
-  for (int i = 0; i<40; i++) s[i] = 0;
-  int length = strftime(s, 40, "%d.%m.%Y %H:%M:%S, %A", u);   //функция для перевода дохуища секунд в адекватный формат времени
-  tmp = (char*)malloc(sizeof(s));
-  strcpy(tmp, s);
-  return(tmp);
-}
+	DIR *directory_name;
+	struct dirent *dirent_dir; 
 
+	if ((directory_name = opendir(str)))
+	{
+		printf("%s:	\n", str);
+		do
+		{
+			if((dirent_dir = readdir(directory_name)) == NULL)
+			{
+				return;
+				//perror("readdir");
+			}
+
+			if((!(dirent_dir->d_name[0] == '.')))
+			{
+				struct stat s;
+				char *str_path_name = (char *) calloc(strlen(str) + strlen(file_name) + 2, sizeof(char));
+				strncpy(str_path_name, str, strlen(str)); //str_path_name = argv[i];
+				strncat(str_path_name, file_name, strlen(file_name));  //'x'  ./Desktop/x;   "x";
+
+				if (stat(str_path_name, &s) == -1)
+				{
+					printf("\"%s\" AAA\n", str_path_name); 
+					perror("Stat fail");
+					return;
+				}
+
+
+				const time_t *timep = &(s.st_atime);
+
+				struct passwd *pwd_1 = getpwuid(s.st_uid);
+				struct passwd *pwd_2 = getpwuid(s.st_gid);
+
+				char root_name[] = "----------";
+
+			    if ( S_ISDIR(s.st_mode) )  root_name[0] = 'd';
+			    if ( S_ISCHR(s.st_mode) )  root_name[0] = 'c';
+			    if ( S_ISBLK(s.st_mode) )  root_name[0] = 'b';
+
+			    if ( s.st_mode & S_IRUSR ) root_name[1] = 'r';
+			    if ( s.st_mode & S_IWUSR ) root_name[2] = 'w';
+			    if ( s.st_mode & S_IXUSR ) root_name[3] = 'x';
+
+			    if ( s.st_mode & S_IRGRP ) root_name[4] = 'r';
+			    if ( s.st_mode & S_IWGRP ) root_name[5] = 'w';
+			    if ( s.st_mode & S_IXGRP ) root_name[6] = 'x';
+
+			    if ( s.st_mode & S_IROTH ) root_name[7] = 'r';
+			    if ( s.st_mode & S_IWOTH ) root_name[8] = 'w';
+			    if ( s.st_mode & S_IXOTH ) root_name[9] = 'x';
+
+				printf("%10ld %s %s %s %ld %s %s\n", s.st_ino, root_name, pwd_1->pw_name, pwd_2->pw_name, s.st_size, ctime(timep), file_name); //ПРимерный вывод с опцией -l
+				
+
+
+				//printf("PATH NAME %s", str_path_name);
+
+				//if ((directory_name = opendir(str_path_name))) //файл есть директория
+				//{
+				//	printf(" HEHEHEHEH:%s 	\n", str_path_name);
+
+				//	if((dirent_dir = readdir(directory_name)))
+				//	{
+				//		if (!(dirent_dir->d_name[0] == '.'))
+				//		{
+							printf(" HEHEHEHEH:%s OHOHO %s	\n", str_path_name, dirent_dir->d_name);
+							strncat(str_path_name, "/", 1);  //'x'  ./Desktop/x;   "x";
+							do_ls(str_path_name, dirent_dir->d_name);
+				//		}
+						//return;
+				//	}
+
+				free(str_path_name);
+			}
+		}
+		while(dirent_dir);
+	}
+}
 
 int main(int argc, char *argv[])
 {
-	struct passwd *pwd_1, *pwd_2; //для определения имени пользователя и группы (без них выводит как с функцией -n)
+	//struct passwd *pwd_1, *pwd_2; //для определения имени пользователя и группы (без них выводит как с функцией -n)
+					struct stat s;
+
 	bool found_a = false;
-	char *root_name = (char *) malloc(10*sizeof(char)); //переводит числовое значчение рут дотсупа в строчное (см далее)
-	int size_name; //длина имени выводимого файла (не нужно)
-	struct tm *u; //для времени
-	char *f;
-	time_t timer;
+	bool found_l = false;
+	bool found_i = false;
+	bool found_n = false;
+	bool found_d = false;
+	bool found_R = false;
+
+	char root_name[11]; //(char *) malloc(10*sizeof(char)); //переводит числовое значчение рут дотсупа в строчное (см далее)
+	char *str_path_name;
+
 	int i;
+	int opt;
+
 	DIR *directory_name;
 	struct dirent *dirent_dir; 
-	struct stat s; //= (stat *) malloc(sizeof(stat));
-	int opt;
-	//char *opts = "a:l:n:i:d:R:i:";	//char *opts = «a:b:o:»; /
+	
+
 
 	while((opt = getopt(argc, argv, "lanidR:")) != -1) 
 	{
@@ -74,18 +138,23 @@ int main(int argc, char *argv[])
 				found_a = true;
 				break;
 			case 'l':
-				//#define L 
-				//#define l %s
-				break;					//ТУТ ПОКА ЧТО ВСЁ МЕРТВО
+				found_l = true;
+				break;
 			case 'i':
+				found_i = true;
 				break;
 			case 'd':
+				found_d = true;
 				break;
 			case 'R':
+				found_R = true;
+				break;
+			case 'n':
+				found_n = true;
 				break;
 			default: 
 				continue;
-		}//*/
+		}
 	}
 
 	for (i = optind; i < argc; i++)
@@ -100,58 +169,86 @@ int main(int argc, char *argv[])
 			else
 			{
 				printf("%s \n", argv[i]);
-				//printf("%ld", s.st_ino);
 			}
 		}
 	}
 
-	for (i = 1; i < argc; i++)
+	for (i = optind; i < argc; i++)
 	{
+		/*
 		if ((directory_name = opendir(argv[i])))
 		{
 			printf("%s:	\n", argv[i]);
-			dirent_dir = readdir(directory_name);
-			stat(dirent_dir->d_name, &s);
-			timer = s.st_atime;
-			u = localtime(&timer);
-			f = settime(u);
 			do
 			{
-				if((!(dirent_dir->d_name[0] == '.')) || found_a)
+				if((dirent_dir = readdir(directory_name)) == NULL)
 				{
-					pwd_1 = getpwuid(s.st_uid);
-					pwd_2 = getpwuid(s.st_gid);
-					size_name = strlen(dirent_dir->d_name);
-					switch(s.st_mode)
-					{
-						case 33204:
-							root_name = "-rw-rw-r--";
-							break;
-						case 16893:
-							root_name = "drwxrwxr-x"; //ЗДЕСЬ ЕЩЕ НЕ ВСЁ
-							break;
-						default :
-							;
-					}//самое сложное - понять что в принтфе....
-					printf("%10ld %s %s %s %ld %30s %.*s\n", s.st_ino, root_name, pwd_1->pw_name, pwd_2->pw_name, s.st_size, f, size_name, dirent_dir->d_name); //ПРимерный вывод с опцией -l
+					break;
 				}
-				dirent_dir = readdir(directory_name);
 
-				if (stat(dirent_dir->d_name, &s) == -1)
-				{
-					printf("/%s/ SUKA SHVAL\n",dirent_dir->d_name); //ОТРЫКРЫТИЕ В ЧАС НОЧИ - СТАТ ОТКРЫВАЕТ ФАЙЛЫ ТОЛЬКО В ДИРЕКТОРИИ, В КОТОРОЙ НАХОДИТСЯ ПРОГРАММА!!!()
-					perror("SUKA BYAD\n");							//(откуда она запускается) НУЖНО КАЖДЫЙ РАЗ ПЕРЕХОДИТЬ В ДИРЕКТОРИИ КОТОРЫЙ ПИШЕТ ПОЛЬЗОВАТЕЛЬ И ОТТУДА
-				}													//УЖЕ ВЫВОДИТЬ ИНФУ о ФАЙЛЕ (наверно такое решение)
+				if((!(dirent_dir->d_name[0] == '.')) || found_a)
+				{	
+			*/
 
-				timer = s.st_atime;
-				u = localtime(&timer);
-				f = settime(u);
-			}
-			while (dirent_dir);
+
+				do_ls(argv[i], dirent_dir->d_name);
+
+
+
+
+
+
+
+
+
+
+
+				/*
+					str_path_name = (char *) calloc(strlen(argv[i]) + strlen(dirent_dir->d_name) + 2, sizeof(char));
+					strncpy(str_path_name, argv[i], strlen(argv[i])); //str_path_name = argv[i];
+					strncat(str_path_name, dirent_dir->d_name, strlen(dirent_dir->d_name));  //'x'  ./Desktop/x;   "x";
+
+					if (stat(str_path_name, &s) == -1)
+					{
+						printf("/%s/ AAA\n", dirent_dir->d_name); 
+						perror("Stat fail");
+					}
+
+					const time_t *timep = &(s.st_atime);
+
+						pwd_1 = getpwuid(s.st_uid);
+						pwd_2 = getpwuid(s.st_gid);
+
+					strcpy( root_name, "----------" );
+
+				    if ( S_ISDIR(s.st_mode) )  root_name[0] = 'd';
+				    if ( S_ISCHR(s.st_mode) )  root_name[0] = 'c';
+				    if ( S_ISBLK(s.st_mode) )  root_name[0] = 'b';
+
+				    if ( s.st_mode & S_IRUSR ) root_name[1] = 'r';
+				    if ( s.st_mode & S_IWUSR ) root_name[2] = 'w';
+				    if ( s.st_mode & S_IXUSR ) root_name[3] = 'x';
+
+				    if ( s.st_mode & S_IRGRP ) root_name[4] = 'r';
+				    if ( s.st_mode & S_IWGRP ) root_name[5] = 'w';
+				    if ( s.st_mode & S_IXGRP ) root_name[6] = 'x';
+
+				    if ( s.st_mode & S_IROTH ) root_name[7] = 'r';
+				    if ( s.st_mode & S_IWOTH ) root_name[8] = 'w';
+				    if ( s.st_mode & S_IXOTH ) root_name[9] = 'x';
+
+					printf("%10ld %s %s %s %ld %s %s\n", s.st_ino, root_name, pwd_1->pw_name, pwd_2->pw_name, s.st_size, ctime(timep), dirent_dir->d_name); //ПРимерный вывод с опцией -l
+					free(str_path_name);
+					*/
+			//	}
+			//}
+			//while (dirent_dir);
 			printf("\n");
 		}
-	}
+	//}
 }
+
+
 
 //struct stat {
 //    dev_t         st_dev;      /* устройство */
