@@ -18,7 +18,7 @@ if ((directory_name = opendir(argv[i])))
 			void do_ls(char *str, char *file_name); //добавить кол - во жестких ссылок
 										//str - argv[i], 
 			{
-				str_path_name = (char *) calloc(strlen(argv[i]) + strlen(dirent_dir->d_name) + 2, sizeof(char));
+				char *str_path_name = (char *) calloc(strlen(argv[i]) + strlen(dirent_dir->d_name) + 2, sizeof(char));
 				strncpy(str_path_name, argv[i], strlen(argv[i])); //str_path_name = argv[i];
 				strncat(str_path_name, dirent_dir->d_name, strlen(dirent_dir->d_name));  //'x'  ./Desktop/x;   "x";
 
