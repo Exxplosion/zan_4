@@ -83,6 +83,8 @@ while (1)
 	{
 		int i = 0; 
 		int j = 0;
+			pid_t pid;
+
 		int LENGHT_ARGV = 0;
 		int count_commands = 0;
 		char *s = (char *) calloc(MAX_SIZE_ARGV, sizeof(char));
@@ -120,7 +122,12 @@ while (1)
 
 		if (j == 0)
 		{
-			printf("not |\n");
+			//printf("not |\n");
+			if ((pid = fork ()) == 0)
+			{
+				if (execvp (command [j].argv_str [0], (char * const *)command [j].argv_str) == -1)
+				perror("Cmd not found");
+			}
 			free(s);
 			free(command);
 			continue;
